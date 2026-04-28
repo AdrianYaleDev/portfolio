@@ -7,16 +7,35 @@ interface ContactProps {
   content: ContactContent;
 }
 
-
 export default function Contact({ content }: ContactProps) {
   const { eyebrow, heading, subheading, socials } = content;
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
-  const [sent, setSent] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", message: "", website: "" });
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    // Wire up to your preferred email/API service here
-    setSent(true);
+    setStatus("sending");
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Something went wrong. Please try again.");
+      }
+
+      setStatus("sent");
+      setForm({ name: "", email: "", message: "", website: "" });
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong.");
+      setStatus("error");
+    }
   }
 
   const inputBase =
@@ -39,17 +58,33 @@ export default function Contact({ content }: ContactProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Form */}
           <div className="lg:col-span-2">
-            {sent ? (
+            {status === "sent" ? (
               <div className="border border-[#e5e5df] p-10 text-center">
                 <p className="font-display font-bold text-2xl text-navy tracking-wide mb-2">
                   Message Sent!
                 </p>
                 <p className="text-sm text-navy/50">
-                  Thank you — I'll be in touch soon.
+                  Thank you — I&apos;ll be in touch soon.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                {/* Honeypot — hidden from real users; bots will fill it in */}
+                <div aria-hidden="true" className="hidden">
+                  <label htmlFor="website">Website</label>
+                  <input
+                    id="website"
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={form.website}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, website: e.target.value }))
+                    }
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <input
                     type="text"
@@ -82,12 +117,18 @@ export default function Contact({ content }: ContactProps) {
                   }
                   className={`${inputBase} resize-none`}
                 />
+
+                {status === "error" && (
+                  <p className="text-xs text-red-500">{errorMsg}</p>
+                )}
+
                 <div>
                   <button
                     type="submit"
-                    className="border border-navy text-navy text-[0.6rem] tracking-[0.3em] uppercase px-10 py-3.5 hover:bg-navy hover:text-white transition-all duration-300"
+                    disabled={status === "sending"}
+                    className="border border-navy text-navy text-[0.6rem] tracking-[0.3em] uppercase px-10 py-3.5 hover:bg-navy hover:text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Send Message
+                    {status === "sending" ? "Sending…" : "Send Message"}
                   </button>
                 </div>
               </form>
