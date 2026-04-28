@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-oswald);
+
+  --color-navy: #16213e;
+  --color-gold: #c9a86c;
+  --color-surface: #f8f8f6;
+  --color-muted: #7a7a7a;
+  --color-border-light: #e5e5df;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: #16213e;
+  background: #ffffff;
+  font-family: var(--font-inter), Arial, sans-serif;
+}
